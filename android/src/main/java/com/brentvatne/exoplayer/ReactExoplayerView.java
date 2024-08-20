@@ -8,6 +8,10 @@ import static androidx.media3.common.C.CONTENT_TYPE_SS;
 import static androidx.media3.common.C.TIME_END_OF_SOURCE;
 
 
+import com.brentvatne.exoplayer.events.BackgroundEnterMessage;
+import com.brentvatne.exoplayer.events.BackgroundLeaveMessage;
+import org.greenrobot.eventbus.EventBus;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -352,12 +356,14 @@ public class ReactExoplayerView extends FrameLayout implements
             setPlayWhenReady(!isPaused);
         }
         isInBackground = false;
+        EventBus.getDefault().post(new BackgroundLeaveMessage(this.player));
     }
 
     @Override
     public void onHostPause() {
         isInBackground = true;
-        if (playInBackground) {
+         if (playInBackground) {
+            EventBus.getDefault().post(new BackgroundEnterMessage(this.player));
             return;
         }
         setPlayWhenReady(false);
