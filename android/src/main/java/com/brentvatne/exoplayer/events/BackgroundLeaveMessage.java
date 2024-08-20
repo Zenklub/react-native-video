@@ -1,23 +1,23 @@
 package com.brentvatne.exoplayer.events;
 
-import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.common.Player;
 
 public class BackgroundLeaveMessage {
 
-    private ExoPlayer player;
+    private Player player;
 
     public BackgroundLeaveMessage() {
     }
 
-    public BackgroundLeaveMessage(ExoPlayer player) {
+    public BackgroundLeaveMessage(Player player) {
         this.player = player;
     }
 
-    public ExoPlayer getPlayer() {
+    public Player getPlayer() {
         return player;
     }
 
-    public void setPlayer(ExoPlayer player) {
+    public void setPlayer(Player player) {
         this.player = player;
     }
 }
