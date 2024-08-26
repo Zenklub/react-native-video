@@ -288,7 +288,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     func applicationWillResignActive(notification: NSNotification!) {
         let isExternalPlaybackActive = _player?.isExternalPlaybackActive ?? false
 
-        if playInBackground {
+        if _playInBackground {
             NotificationCenter.default.post(name: Notification.Name("RNVBackgroundEnter"), object: _player)
         }
 
@@ -320,9 +320,9 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     }
 
     @objc
-    func applicationWillEnterForeground(notification _: NSNotification!) {
+    func applicationWillEnterForeground(notification: NSNotification!) {
         self.applyModifiers()
-        if playInBackground {
+        if _playInBackground {
             NotificationCenter.default.post(name: Notification.Name("RNVBackgroundLeave"), object: nil, userInfo: notification.userInfo)
         }
         _playerLayer?.player = _player
