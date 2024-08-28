@@ -285,8 +285,14 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     // MARK: - App lifecycle handlers
 
     @objc
-    func applicationWillResignActive(notification _: NSNotification!) {
+    func applicationWillResignActive(notification: NSNotification!) {
         let isExternalPlaybackActive = _player?.isExternalPlaybackActive ?? false
+
+        if _playInBackground {
+            NotificationCenter.default.post(name: Notification.Name("RNVBackgroundEnter"), object: _player)
+        }
+
+
         if _playInBackground || _playWhenInactive || !_isPlaying || isExternalPlaybackActive { return }
 
         _player?.pause()
@@ -308,13 +314,17 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         let isExternalPlaybackActive = _player?.isExternalPlaybackActive ?? false
         if !_playInBackground || isExternalPlaybackActive || isPipActive() { return }
         // Needed to play sound in background. See https://developer.apple.com/library/ios/qa/qa1668/_index.html
+        NotificationCenter.default.post(name: Notification.Name("RNVBackgroundEnter"), object: _player)
         _playerLayer?.player = nil
         _playerViewController?.player = nil
     }
 
     @objc
-    func applicationWillEnterForeground(notification _: NSNotification!) {
+    func applicationWillEnterForeground(notification: NSNotification!) {
         self.applyModifiers()
+        if _playInBackground {
+            NotificationCenter.default.post(name: Notification.Name("RNVBackgroundLeave"), object: nil, userInfo: notification.userInfo)
+        }
         _playerLayer?.player = _player
         _playerViewController?.player = _player
     }
