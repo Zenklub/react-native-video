@@ -42,7 +42,8 @@ enum class EventTypes(val eventName: String) {
 
     EVENT_TEXT_TRACK_DATA_CHANGED("onTextTrackDataChanged"),
     EVENT_VIDEO_TRACKS("onVideoTracks"),
-    EVENT_ON_RECEIVE_AD_EVENT("onReceiveAdEvent");
+    EVENT_ON_RECEIVE_AD_EVENT("onReceiveAdEvent"),
+    EVENT_PICTURE_IN_PICTURE_STATUS_CHANGED("onPictureInPictureStatusChanged");
 
     companion object {
         fun toMap() =
@@ -64,11 +65,11 @@ class VideoEventEmitter {
         audioTracks: ArrayList<Track>,
         textTracks: ArrayList<Track>,
         videoTracks: ArrayList<VideoTrack>,
-        trackId: String
+        trackId: String?
     ) -> Unit
     lateinit var onVideoError: (errorString: String, exception: Exception, errorCode: String) -> Unit
     lateinit var onVideoProgress: (currentPosition: Long, bufferedDuration: Long, seekableDuration: Long, currentPlaybackTime: Double) -> Unit
-    lateinit var onVideoBandwidthUpdate: (bitRateEstimate: Long, height: Int, width: Int, trackId: String) -> Unit
+    lateinit var onVideoBandwidthUpdate: (bitRateEstimate: Long, height: Int, width: Int, trackId: String?) -> Unit
     lateinit var onVideoPlaybackStateChanged: (isPlaying: Boolean, isSeeking: Boolean) -> Unit
     lateinit var onVideoSeek: (currentPosition: Long, seekTime: Long) -> Unit
     lateinit var onVideoEnd: () -> Unit
@@ -90,6 +91,7 @@ class VideoEventEmitter {
     lateinit var onVideoTracks: (videoTracks: ArrayList<VideoTrack>?) -> Unit
     lateinit var onTextTrackDataChanged: (textTrackData: String) -> Unit
     lateinit var onReceiveAdEvent: (adEvent: String, adData: Map<String?, String?>?) -> Unit
+    lateinit var onPictureInPictureStatusChanged: (isActive: Boolean) -> Unit
 
     fun addEventEmitters(reactContext: ThemedReactContext, view: ReactExoplayerView) {
         val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, view.id)
@@ -108,7 +110,7 @@ class VideoEventEmitter {
 
                     val naturalSize: WritableMap = aspectRatioToNaturalSize(videoWidth, videoHeight)
                     putMap("naturalSize", naturalSize)
-                    putString("trackId", trackId)
+                    trackId?.let { putString("trackId", it) }
                     putArray("videoTracks", videoTracksToArray(videoTracks))
                     putArray("audioTracks", audioTracksToArray(audioTracks))
                     putArray("textTracks", textTracksToArray(textTracks))
@@ -153,9 +155,13 @@ class VideoEventEmitter {
             onVideoBandwidthUpdate = { bitRateEstimate, height, width, trackId ->
                 event.dispatch(EventTypes.EVENT_BANDWIDTH) {
                     putDouble("bitrate", bitRateEstimate.toDouble())
-                    putInt("width", width)
-                    putInt("height", height)
-                    putString("trackId", trackId)
+                    if (width > 0) {
+                        putInt("width", width)
+                    }
+                    if (height > 0) {
+                        putInt("height", height)
+                    }
+                    trackId?.let { putString("trackId", it) }
                 }
             }
             onVideoPlaybackStateChanged = { isPlaying, isSeeking ->
@@ -274,15 +280,25 @@ class VideoEventEmitter {
                     )
                 }
             }
+            onPictureInPictureStatusChanged = { isActive ->
+                event.dispatch(EventTypes.EVENT_PICTURE_IN_PICTURE_STATUS_CHANGED) {
+                    putBoolean("isActive", isActive)
+                }
+            }
         }
+    }
+
+    private class VideoCustomEvent(surfaceId: Int, viewId: Int, private val event: EventTypes, private val paramsSetter: (WritableMap.() -> Unit)?) :
+        Event<VideoCustomEvent>(surfaceId, viewId) {
+
+        override fun getEventName(): String = "top${event.eventName.removePrefix("on")}"
+
+        override fun getEventData(): WritableMap? = Arguments.createMap().apply(paramsSetter ?: {})
     }
 
     private class EventBuilder(private val surfaceId: Int, private val viewId: Int, private val dispatcher: EventDispatcher) {
         fun dispatch(event: EventTypes, paramsSetter: (WritableMap.() -> Unit)? = null) =
-            dispatcher.dispatchEvent(object : Event<Event<*>>(surfaceId, viewId) {
-                override fun getEventName() = "top${event.eventName.removePrefix("on")}"
-                override fun getEventData() = Arguments.createMap().apply(paramsSetter ?: {})
-            })
+            dispatcher.dispatchEvent(VideoCustomEvent(surfaceId, viewId, event, paramsSetter))
     }
 
     private fun audioTracksToArray(audioTracks: java.util.ArrayList<Track>?): WritableArray =
@@ -336,15 +352,19 @@ class VideoEventEmitter {
 
     private fun aspectRatioToNaturalSize(videoWidth: Int, videoHeight: Int): WritableMap =
         Arguments.createMap().apply {
-            putInt("width", videoWidth)
-            putInt("height", videoHeight)
-            val orientation = if (videoWidth > videoHeight) {
-                "landscape"
-            } else if (videoWidth < videoHeight) {
-                "portrait"
-            } else {
-                "square"
+            if (videoWidth > 0) {
+                putInt("width", videoWidth)
             }
+            if (videoHeight > 0) {
+                putInt("height", videoHeight)
+            }
+
+            val orientation = when {
+                videoWidth > videoHeight -> "landscape"
+                videoWidth < videoHeight -> "portrait"
+                else -> "square"
+            }
+
             putString("orientation", orientation)
         }
 }

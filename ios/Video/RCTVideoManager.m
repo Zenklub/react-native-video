@@ -5,7 +5,6 @@
 
 RCT_EXPORT_VIEW_PROPERTY(src, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(drm, NSDictionary);
-RCT_EXPORT_VIEW_PROPERTY(adTagUrl, NSString);
 RCT_EXPORT_VIEW_PROPERTY(maxBitRate, float);
 RCT_EXPORT_VIEW_PROPERTY(resizeMode, NSString);
 RCT_EXPORT_VIEW_PROPERTY(repeat, BOOL);
@@ -24,7 +23,7 @@ RCT_EXPORT_VIEW_PROPERTY(playInBackground, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(preventsDisplaySleepDuringVideoPlayback, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(preferredForwardBufferDuration, float);
 RCT_EXPORT_VIEW_PROPERTY(playWhenInactive, BOOL);
-RCT_EXPORT_VIEW_PROPERTY(pictureInPicture, BOOL);
+RCT_EXPORT_VIEW_PROPERTY(enterPictureInPictureOnLeave, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(ignoreSilentSwitch, NSString);
 RCT_EXPORT_VIEW_PROPERTY(mixWithOthers, NSString);
 RCT_EXPORT_VIEW_PROPERTY(rate, float);
@@ -38,6 +37,7 @@ RCT_EXPORT_VIEW_PROPERTY(restoreUserInterfaceForPIPStopCompletionHandler, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(localSourceEncryptionKeyScheme, NSString);
 RCT_EXPORT_VIEW_PROPERTY(subtitleStyle, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(showNotificationControls, BOOL);
+RCT_EXPORT_VIEW_PROPERTY(disableAudioSessionManagement, BOOL);
 /* Should support: onLoadStart, onLoad, and onError to stay consistent with Image */
 RCT_EXPORT_VIEW_PROPERTY(onVideoLoadStart, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoLoad, RCTDirectEventBlock);
@@ -74,6 +74,9 @@ RCT_EXTERN_METHOD(setLicenseResultErrorCmd : (nonnull NSNumber*)reactTag error :
 RCT_EXTERN_METHOD(setPlayerPauseStateCmd : (nonnull NSNumber*)reactTag paused : (nonnull BOOL)paused)
 RCT_EXTERN_METHOD(setVolumeCmd : (nonnull NSNumber*)reactTag volume : (nonnull float*)volume)
 RCT_EXTERN_METHOD(setFullScreenCmd : (nonnull NSNumber*)reactTag fullscreen : (nonnull BOOL)fullScreen)
+RCT_EXTERN_METHOD(enterPictureInPictureCmd : (nonnull NSNumber*)reactTag)
+RCT_EXTERN_METHOD(exitPictureInPictureCmd : (nonnull NSNumber*)reactTag)
+RCT_EXTERN_METHOD(setSourceCmd : (nonnull NSNumber*)reactTag source : (NSDictionary*)source)
 
 RCT_EXTERN_METHOD(save
                   : (nonnull NSNumber*)reactTag options

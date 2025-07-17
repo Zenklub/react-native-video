@@ -1,14 +1,10 @@
 package com.brentvatne.exoplayer
 
 import android.graphics.Color
-import android.net.Uri
-import android.text.TextUtils
 import android.util.Log
-import com.brentvatne.common.api.BufferConfig
 import com.brentvatne.common.api.BufferingStrategy
 import com.brentvatne.common.api.ControlsConfig
 import com.brentvatne.common.api.ResizeMode
-import com.brentvatne.common.api.SideLoadedTextTrackList
 import com.brentvatne.common.api.Source
 import com.brentvatne.common.api.SubtitleStyle
 import com.brentvatne.common.api.ViewType
@@ -16,7 +12,6 @@ import com.brentvatne.common.react.EventTypes
 import com.brentvatne.common.toolbox.DebugLog
 import com.brentvatne.common.toolbox.ReactBridgeUtils
 import com.brentvatne.react.ReactNativeVideoManager
-import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
@@ -28,7 +23,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         private const val TAG = "ExoViewManager"
         private const val REACT_CLASS = "RCTVideo"
         private const val PROP_SRC = "src"
-        private const val PROP_AD_TAG_URL = "adTagUrl"
         private const val PROP_RESIZE_MODE = "resizeMode"
         private const val PROP_REPEAT = "repeat"
         private const val PROP_SELECTED_AUDIO_TRACK = "selectedAudioTrack"
@@ -37,21 +31,18 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         private const val PROP_SELECTED_TEXT_TRACK = "selectedTextTrack"
         private const val PROP_SELECTED_TEXT_TRACK_TYPE = "type"
         private const val PROP_SELECTED_TEXT_TRACK_VALUE = "value"
-        private const val PROP_TEXT_TRACKS = "textTracks"
         private const val PROP_PAUSED = "paused"
+        private const val PROP_ENTER_PICTURE_IN_PICTURE_ON_LEAVE = "enterPictureInPictureOnLeave"
         private const val PROP_MUTED = "muted"
         private const val PROP_AUDIO_OUTPUT = "audioOutput"
         private const val PROP_VOLUME = "volume"
-        private const val PROP_BUFFER_CONFIG = "bufferConfig"
         private const val PROP_PREVENTS_DISPLAY_SLEEP_DURING_VIDEO_PLAYBACK =
             "preventsDisplaySleepDuringVideoPlayback"
         private const val PROP_PROGRESS_UPDATE_INTERVAL = "progressUpdateInterval"
         private const val PROP_REPORT_BANDWIDTH = "reportBandwidth"
         private const val PROP_RATE = "rate"
-        private const val PROP_MIN_LOAD_RETRY_COUNT = "minLoadRetryCount"
         private const val PROP_MAXIMUM_BIT_RATE = "maxBitRate"
         private const val PROP_PLAY_IN_BACKGROUND = "playInBackground"
-        private const val PROP_CONTENT_START_TIME = "contentStartTime"
         private const val PROP_DISABLE_FOCUS = "disableFocus"
         private const val PROP_BUFFERING_STRATEGY = "bufferingStrategy"
         private const val PROP_DISABLE_DISCONNECT_ERROR = "disableDisconnectError"
@@ -61,7 +52,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         private const val PROP_SELECTED_VIDEO_TRACK = "selectedVideoTrack"
         private const val PROP_SELECTED_VIDEO_TRACK_TYPE = "type"
         private const val PROP_SELECTED_VIDEO_TRACK_VALUE = "value"
-        private const val PROP_HIDE_SHUTTER_VIEW = "hideShutterView"
         private const val PROP_CONTROLS = "controls"
         private const val PROP_SUBTITLE_STYLE = "subtitleStyle"
         private const val PROP_SHUTTER_COLOR = "shutterColor"
@@ -79,6 +69,7 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
 
     override fun onDropViewInstance(view: ReactExoplayerView) {
         view.cleanUpResources()
+        view.exitPictureInPictureMode()
         ReactNativeVideoManager.getInstance().unregisterView(this)
     }
 
@@ -92,22 +83,7 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
     @ReactProp(name = PROP_SRC)
     fun setSrc(videoView: ReactExoplayerView, src: ReadableMap?) {
         val context = videoView.context.applicationContext
-        val source = Source.parse(src, context)
-        if (source.uri == null) {
-            videoView.clearSrc()
-        } else {
-            videoView.setSrc(source)
-        }
-    }
-
-    @ReactProp(name = PROP_AD_TAG_URL)
-    fun setAdTagUrl(videoView: ReactExoplayerView, uriString: String?) {
-        if (TextUtils.isEmpty(uriString)) {
-            videoView.setAdTagUrl(null)
-            return
-        }
-        val adTagUrl = Uri.parse(uriString)
-        videoView.setAdTagUrl(adTagUrl)
+        videoView.setSrc(Source.parse(src, context))
     }
 
     @ReactProp(name = PROP_RESIZE_MODE)
@@ -169,12 +145,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         videoView.setSelectedTextTrack(typeString, value)
     }
 
-    @ReactProp(name = PROP_TEXT_TRACKS)
-    fun setTextTracks(videoView: ReactExoplayerView, textTracks: ReadableArray?) {
-        val sideLoadedTextTracks = SideLoadedTextTrackList.parse(textTracks)
-        videoView.setTextTracks(sideLoadedTextTracks)
-    }
-
     @ReactProp(name = PROP_PAUSED, defaultBoolean = false)
     fun setPaused(videoView: ReactExoplayerView, paused: Boolean) {
         videoView.setPausedModifier(paused)
@@ -183,6 +153,11 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
     @ReactProp(name = PROP_MUTED, defaultBoolean = false)
     fun setMuted(videoView: ReactExoplayerView, muted: Boolean) {
         videoView.setMutedModifier(muted)
+    }
+
+    @ReactProp(name = PROP_ENTER_PICTURE_IN_PICTURE_ON_LEAVE, defaultBoolean = false)
+    fun setEnterPictureInPictureOnLeave(videoView: ReactExoplayerView, enterPictureInPictureOnLeave: Boolean) {
+        videoView.setEnterPictureInPictureOnLeave(enterPictureInPictureOnLeave)
     }
 
     @ReactProp(name = PROP_AUDIO_OUTPUT)
@@ -215,11 +190,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         videoView.setMaxBitRateModifier(maxBitRate.toInt())
     }
 
-    @ReactProp(name = PROP_MIN_LOAD_RETRY_COUNT)
-    fun setMinLoadRetryCount(videoView: ReactExoplayerView, minLoadRetryCount: Int) {
-        videoView.setMinLoadRetryCountModifier(minLoadRetryCount)
-    }
-
     @ReactProp(name = PROP_PLAY_IN_BACKGROUND, defaultBoolean = false)
     fun setPlayInBackground(videoView: ReactExoplayerView, playInBackground: Boolean) {
         videoView.setPlayInBackground(playInBackground)
@@ -233,11 +203,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
     @ReactProp(name = PROP_FOCUSABLE, defaultBoolean = true)
     fun setFocusable(videoView: ReactExoplayerView, focusable: Boolean) {
         videoView.setFocusable(focusable)
-    }
-
-    @ReactProp(name = PROP_CONTENT_START_TIME, defaultInt = -1)
-    fun setContentStartTime(videoView: ReactExoplayerView, contentStartTime: Int) {
-        videoView.setContentStartTime(contentStartTime)
     }
 
     @ReactProp(name = PROP_BUFFERING_STRATEGY)
@@ -261,11 +226,6 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         videoView.setViewType(viewType)
     }
 
-    @ReactProp(name = PROP_HIDE_SHUTTER_VIEW, defaultBoolean = false)
-    fun setHideShutterView(videoView: ReactExoplayerView, hideShutterView: Boolean) {
-        videoView.setHideShutterView(hideShutterView)
-    }
-
     @ReactProp(name = PROP_CONTROLS, defaultBoolean = false)
     fun setControls(videoView: ReactExoplayerView, controls: Boolean) {
         videoView.setControls(controls)
@@ -276,15 +236,9 @@ class ReactExoplayerViewManager(private val config: ReactExoplayerConfig) : View
         videoView.setSubtitleStyle(SubtitleStyle.parse(src))
     }
 
-    @ReactProp(name = PROP_SHUTTER_COLOR, defaultInt = 0)
+    @ReactProp(name = PROP_SHUTTER_COLOR, defaultInt = Color.BLACK)
     fun setShutterColor(videoView: ReactExoplayerView, color: Int) {
-        videoView.setShutterColor(if (color == 0) Color.BLACK else color)
-    }
-
-    @ReactProp(name = PROP_BUFFER_CONFIG)
-    fun setBufferConfig(videoView: ReactExoplayerView, bufferConfig: ReadableMap?) {
-        val config = BufferConfig.parse(bufferConfig)
-        videoView.setBufferConfig(config)
+        videoView.setShutterColor(color)
     }
 
     @ReactProp(name = PROP_SHOW_NOTIFICATION_CONTROLS)
